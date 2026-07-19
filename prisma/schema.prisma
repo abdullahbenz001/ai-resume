@@ -1,0 +1,66 @@
+// Prisma schema for AI Resume Match (Neon PostgreSQL)
+// https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url  	    = env("DATABASE_URL")
+  // uncomment next line if you use Prisma <5.10
+  // directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+/// App user synced from Clerk (`clerkId` = Clerk `userId`).
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique @map("clerk_id")
+  email     String?
+  firstName String?  @map("first_name")
+  lastName  String?  @map("last_name")
+  imageUrl  String?  @map("image_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  resumes Resume[]
+
+  @@map("users")
+}
+
+/// Resume document owned by a user.
+model Resume {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  title     String?
+  content   String   @db.Text
+  fileName  String?  @map("file_name")
+  mimeType  String?  @map("mime_type")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  analyses Analysis[]
+
+  @@index([userId])
+  @@map("resumes")
+}
+
+/// AI match analysis for a resume against a job description.
+model Analysis {
+  id             String   @id @default(cuid())
+  resumeId       String   @map("resume_id")
+  jobDescription String   @map("job_description") @db.Text
+  score          Int
+  strengths      String[]
+  missingSkills  String[] @map("missing_skills")
+  suggestions    String[]
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  @@index([resumeId])
+  @@index([createdAt])
+  @@map("analyses")
+}

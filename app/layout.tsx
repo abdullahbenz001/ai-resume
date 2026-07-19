@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-
-import { SiteHeader } from "@/components/site-header";
+import { ClerkProvider } from "@clerk/nextjs";
+import { shadcn } from "@clerk/ui/themes";
 
 import "./globals.css";
 
@@ -34,8 +34,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="min-h-full flex flex-col font-sans">
-        <SiteHeader />
-        {children}
+        <ClerkProvider appearance={{ theme: shadcn }}>{children}</ClerkProvider>
       </body>
     </html>
   );
