@@ -9,10 +9,10 @@ import { generateOptimization } from "./provider";
 
 export async function optimizeResume(input: unknown) {
   const user = await requireAppUser();
-  const { resumeId, jobDescription } = optimizeInputSchema.parse(input);
+  const { resumeId, jobDescription, mode } = optimizeInputSchema.parse(input);
   const resume = await resumeRepository.find(user.id, resumeId);
   if (!resume) throw new AppError("Resume not found.", 404);
   const content = resumeContentSchema.parse(resume.content);
   await consumeApiQuota(user.id, "optimizer");
-  return generateOptimization(content, jobDescription);
+  return generateOptimization(content, jobDescription, mode);
 }

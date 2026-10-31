@@ -50,4 +50,12 @@ Optimizer acceptance:
 7. Double-clicking generate/save does not send duplicate pending requests.
 8. Unsaved drafts disappear on navigation/reload, as stated in the UI.
 
-Version lineage, optimization history, dedicated STAR/summary modes, ATS scoring, job tracker, embeddings and billing are not included.
+Version lineage, optimization history, ATS scoring, job tracker, embeddings and billing are not included.
+
+## Sprint 6.2 — Focused optimization
+
+Adds professional-summary and experience/STAR focus options alongside full-resume optimization. No migrations or dependencies are added. Mode validation happens before repository/quota/provider work. Changing focus resets confirmation and blocks saving a stale draft. AI instructions request factual preservation; model quality and exact section preservation still require live acceptance.
+
+Acceptance: generate each mode from the same resume; verify facts, inspect the whole output, change focus and confirm saving is blocked until regeneration and review. Missing STAR results must lead to review questions rather than invented metrics. These semantic requirements cannot be established by mocked provider tests alone.
+
+The existing database was repaired with additive SQL during local troubleshooting. Migration history/baselining remains unresolved pending read-only introspection from the user's environment; successful runtime use is not evidence that migration history is synchronized.
