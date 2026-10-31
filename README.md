@@ -10,7 +10,7 @@ A Next.js SaaS workspace for saving resumes and comparing them with job descript
 - Server-side ownership checks, Zod validation, bounded request bodies and PostgreSQL-backed request budgets.
 - Explicit AI failures: no fabricated scores or silently substituted results.
 
-Search, favorites, optimizer, ATS scoring, job tracking, embeddings and billing are **not implemented** in this delivery. This is not yet a production release.
+Optimizer, ATS scoring, job tracking, embeddings and billing are **not implemented** in this delivery. This is not yet a production release.
 
 ## Local setup
 
