@@ -8,9 +8,10 @@ A Next.js SaaS workspace for saving resumes and comparing them with job descript
 - Resume workspace: create from PDF or text, rename, delete (including related analyses), empty/loading/error states.
 - Analysis of saved resumes, transactional persistence, analysis history and live dashboard statistics.
 - Server-side ownership checks, Zod validation, bounded request bodies and PostgreSQL-backed request budgets.
+- Resume optimizer: job-targeted draft, editable comparison, review notes and explicit save as a separate resume. Drafts are temporary until saved.
 - Explicit AI failures: no fabricated scores or silently substituted results.
 
-Optimizer, ATS scoring, job tracking, embeddings and billing are **not implemented** in this delivery. This is not yet a production release.
+ATS scoring, job tracking, embeddings and billing are **not implemented** in this delivery. This is not yet a production release.
 
 ## Local setup
 
@@ -36,6 +37,7 @@ Configure Clerk's development instance and Gemini/Neon through their provider da
 - `features/auth/services/`: derives local identity from verified Clerk sessions.
 - `features/resume/`: schemas, DTOs, ownership-scoped repositories, services, Server Actions and workspace UI.
 - `features/analysis/`: ownership checks and transactional result persistence.
+- `features/optimizer/`: authenticated generation, bounded model output and review workspace.
 - `features/dashboard/`: per-user aggregate data.
 - `components/`: shared UI and preserved analyzer components.
 - `lib/`: provider client, database connection, input limits and request budgets.
@@ -55,10 +57,12 @@ Vitest covers authorization boundaries, schemas, HTTP status handling, failed mo
 
 Sprint 5.3 now includes client-side search across title/file/preview, all/favorites filtering, updated/name sorting and a persistent favorite flag. List reads remain capped at 100 until pagination is added.
 
+Optimizer uses the existing Gemini configuration and Resume table. It adds no migration. Prompts request factual preservation, but model output is not a factual guarantee: users must review every claim. Version lineage, optimization history, dedicated STAR/summary modes and comparison scoring remain future work.
+
 ## Operational limits
 
 - PDF: 5 MiB; resumes and job descriptions: 12,000 characters each.
-- Authenticated limits: 10 analysis requests/hour and 20 PDF extraction requests/hour per Clerk user. Failed attempts after quota allocation count toward the limit.
+- Authenticated limits: 10 analysis requests/hour and 20 PDF extraction requests/hour per Clerk user; 10 optimizations/hour per local app user. Failed attempts after quota allocation count toward the limit.
 - Workspace shows latest 100 resumes; history shows latest 50 analyses. Pagination is future work.
 - PDF binary files are not persisted; extracted text is stored. Resume deletion cascades to its analyses.
 - No automatic deployment or live migration is performed by CI. See [delivery status](docs/delivery-status.md).

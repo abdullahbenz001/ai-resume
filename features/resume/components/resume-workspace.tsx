@@ -287,6 +287,10 @@ export function ResumeWorkspace({ resumes }: { resumes: ResumeSummary[] }) {
                   >
                     Analyze resume <ArrowUpRight className="size-4" />
                   </Link>
+                  <Link href={`/optimizer?resumeId=${encodeURIComponent(resume.id)}`}
+                    className={buttonVariants({ variant: "ghost", className: "mt-2 w-full" })}>
+                    Optimize resume
+                  </Link>
                 </article>
               ))}
             </div>

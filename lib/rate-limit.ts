@@ -1,13 +1,13 @@
 import "server-only";
 import { getDb } from "@/lib/db";
 import { AppError } from "@/lib/app-error";
-// Atomic PostgreSQL counter: shared by all instances, bounded to two rows per Clerk user.
+// Atomic PostgreSQL counter: shared by all instances, one row per identity and scope.
 export async function consumeApiQuota(
   userId: string,
-  scope: "analysis" | "pdf",
+  scope: "analysis" | "pdf" | "optimizer",
 ) {
   const key = `${userId}:${scope}`;
-  const limit = scope === "analysis" ? 10 : 20;
+  const limit = scope === "pdf" ? 20 : 10;
   const rows = await getDb().$queryRaw<Array<{ count: number }>>`
     INSERT INTO rate_limits (key, count, window_start) VALUES (${key}, 1, NOW())
     ON CONFLICT (key) DO UPDATE SET

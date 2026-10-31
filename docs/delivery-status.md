@@ -1,4 +1,4 @@
-# Delivery status — Resume Workspace foundation
+# Delivery status — Resume Workspace and Optimizer
 
 Base: GitHub `main` at `043c77912229a1c003b53b444823383302863cf0`.
 
@@ -6,7 +6,7 @@ Base: GitHub `main` at `043c77912229a1c003b53b444823383302863cf0`.
 
 Repairs the missing Sprint 4 persistence and Phase 5.1 backend, implements Phase 5.2 workspace, and removes the identified API authentication, sensitive logging and fabricated-result problems. Dashboard/history now use persisted user-scoped records. Preserves Clerk, Gemini, Neon, Prisma and the existing UI system.
 
-## Verified in this workspace
+## Prior workspace verification
 
 - ESLint passed.
 - TypeScript checks and Next.js production build passed.
@@ -35,4 +35,19 @@ Repairs the missing Sprint 4 persistence and Phase 5.1 backend, implements Phase
 7. Keyboard navigation opens the menu, enters the dialog, closes with Escape and returns focus appropriately.
 8. No horizontal overflow at 390px; long titles/text wrap or truncate appropriately.
 
-Search/filter/sort/favorites remain Phase 5.3; no future phase was silently marked complete.
+## Current implementation
+Sprint 5 search/filter/sort/favorites are implemented. Sprint 6 first delivery adds a protected optimizer selector, authenticated generation, original/draft comparison, review notes, editing and explicit save as a new Resume. It reuses the existing database schema and Gemini setup.
+
+The current local execution environment is unavailable. Verification for this delivery runs through GitHub Actions; inspect the PR checks for the exact commit. Live provider and browser acceptance remain outstanding.
+
+Optimizer acceptance:
+1. Choose a resume, paste a job description, generate and review the suggested changes.
+2. Generation alone must not create or modify database resumes.
+3. Confirm accuracy, save once, reload My Resumes and verify the new copy; original text and analyses must be unchanged.
+4. User B cannot generate with User A's resume ID; quota/provider work must not run for that ID.
+5. Malformed output and timeouts show errors; an existing editable draft survives a failed generation.
+6. Changing the job description requires regeneration before saving; editing the draft resets review confirmation.
+7. Double-clicking generate/save does not send duplicate pending requests.
+8. Unsaved drafts disappear on navigation/reload, as stated in the UI.
+
+Version lineage, optimization history, dedicated STAR/summary modes, ATS scoring, job tracker, embeddings and billing are not included.
