@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url  	    = env("DATABASE_URL")
+
   // uncomment next line if you use Prisma <5.10
   // directUrl = env("DATABASE_URL_UNPOOLED")
 }
@@ -63,4 +63,13 @@ model Analysis {
   @@index([resumeId])
   @@index([createdAt])
   @@map("analyses")
+}
+
+
+/// One rolling request budget per user and endpoint, shared across instances.
+model RateLimit {
+  key         String   @id
+  count       Int
+  windowStart DateTime @map("window_start")
+  @@map("rate_limits")
 }

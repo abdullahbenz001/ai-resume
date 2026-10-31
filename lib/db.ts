@@ -16,7 +16,7 @@ function createPrismaClient(): PrismaClient {
 
   if (!connectionString) {
     throw new Error(
-      "DATABASE_URL is not set. Add your Neon pooled connection string to .env.local."
+      "DATABASE_URL is not set. Add your Neon pooled connection string to .env.local.",
     );
   }
 
@@ -24,10 +24,7 @@ function createPrismaClient(): PrismaClient {
 
   return new PrismaClient({
     adapter,
-    log:
-      process.env.NODE_ENV === "development"
-        ? ["error", "warn"]
-        : ["error"],
+    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   });
 }
 
@@ -35,8 +32,7 @@ function createPrismaClient(): PrismaClient {
  * Shared Prisma Client singleton for server-side use.
  * Uses Neon’s pooled `DATABASE_URL` via `@prisma/adapter-neon`.
  */
-export const db = globalForPrisma.prisma ?? createPrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = db;
+export function getDb(): PrismaClient {
+  globalForPrisma.prisma ??= createPrismaClient();
+  return globalForPrisma.prisma;
 }
