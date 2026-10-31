@@ -25,7 +25,7 @@ npm run db:deploy
 npm run dev
 ```
 
-The repository `.npmrc` preserves the peer-resolution mode needed by the existing Clerk/shadcn dependency tree. `postinstall` generates Prisma Client. No database connection is required for generation or build.
+The repository `.npmrc` preserves the peer-resolution mode needed by the existing Clerk/shadcn dependency tree. `postinstall` generates Prisma Client. Both `npm run dev` and `npm run build` explicitly regenerate it before starting Next.js, including when install lifecycle scripts were skipped. No database connection is required for generation or build.
 
 Configure Clerk's development instance and Gemini/Neon through their provider dashboards. Keep server credentials in `.env.local` or the deployment platform's secret manager. `GEMINI_MODEL` is configurable; verify that the selected model is available to your Gemini project. The existing model default is preserved.
 
@@ -66,3 +66,18 @@ Optimizer uses the existing Gemini configuration and Resume table. It adds no mi
 - Workspace shows latest 100 resumes; history shows latest 50 analyses. Pagination is future work.
 - PDF binary files are not persisted; extracted text is stored. Resume deletion cascades to its analyses.
 - No automatic deployment or live migration is performed by CI. See [delivery status](docs/delivery-status.md).
+
+## Missing Prisma Client on startup
+
+If opening a protected page reports `Cannot find module '.prisma/client/default'`, the generated client is missing from the local installation. A Git pull does not generate files inside node_modules. The generation step may also have been skipped or failed during install.
+
+Stop the dev server first. In the project directory, run `npm run db:generate`. Wait for "Generated Prisma Client" before restarting with `npm run dev`. Generation does not modify database tables and does not require a database reset or migration.
+
+If Next.js still holds the previous error, stop the server and remove only its generated cache. In PowerShell:
+
+```powershell
+if (Test-Path .next) { Remove-Item -Recurse -Force .next }
+npm run dev
+```
+
+If generation itself fails, fix that first using its error message. Do not change the Prisma import path or commit generated node_modules files. Use Node 22.12+ and `npm ci` for the versions in the lockfile. Check `git status --short --branch` and `git log -1 --oneline` if stack traces reference files different from the current repository; preserve local changes when updating.
