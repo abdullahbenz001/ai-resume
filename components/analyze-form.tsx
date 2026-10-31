@@ -20,8 +20,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { analyzeMatch, AnalyzeApiError } from "@/lib/analyze-api";
 import type { AnalysisResult } from "@/types/analysis";
 
-export function AnalyzeForm() {
-  const [resumeText, setResumeText] = useState("");
+export function AnalyzeForm({
+  savedResume,
+}: {
+  savedResume?: { id: string; content: string };
+}) {
+  const [resumeText, setResumeText] = useState(savedResume?.content || "");
   const [jobDescription, setJobDescription] = useState("");
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +44,11 @@ export function AnalyzeForm() {
     setIsLoading(true);
 
     try {
-      const analysis = await analyzeMatch({ resumeText, jobDescription });
+      const analysis = await analyzeMatch({
+        resumeText,
+        jobDescription,
+        resumeId: savedResume?.id,
+      });
       setResult(analysis);
     } catch (err) {
       if (err instanceof AnalyzeApiError) {
@@ -76,16 +84,21 @@ export function AnalyzeForm() {
                   Resume Text
                 </Label>
 
-                <ResumeUploader
-                  disabled={isLoading}
-                  onExtracted={(text) => {
-                    setResumeText(text);
-                    setError(null);
-                  }}
-                  onClear={() => setResumeText("")}
-                />
+                {!savedResume && (
+                  <ResumeUploader
+                    disabled={isLoading}
+                    onExtracted={(text) => {
+                      setResumeText(text);
+                      setError(null);
+                    }}
+                    onClear={() => setResumeText("")}
+                  />
+                )}
 
                 <Textarea
+                  readOnly={Boolean(savedResume)}
+                  minLength={50}
+                  maxLength={12000}
                   id="resume-text"
                   value={resumeText}
                   onChange={(event) => setResumeText(event.target.value)}
@@ -103,6 +116,8 @@ export function AnalyzeForm() {
                   Job Description
                 </Label>
                 <Textarea
+                  minLength={50}
+                  maxLength={12000}
                   id="job-description"
                   value={jobDescription}
                   onChange={(event) => setJobDescription(event.target.value)}
@@ -122,8 +137,8 @@ export function AnalyzeForm() {
 
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs text-muted-foreground sm:max-w-sm">
-                Your text is sent securely to generate a match analysis. Nothing
-                is stored in this demo flow.
+                Your text is sent to Gemini for analysis. Successful results are
+                saved privately in your workspace.
               </p>
               <Button
                 type="submit"
@@ -133,7 +148,10 @@ export function AnalyzeForm() {
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="animate-spin" data-icon="inline-start" />
+                    <Loader2
+                      className="animate-spin"
+                      data-icon="inline-start"
+                    />
                     Analyzing...
                   </>
                 ) : (

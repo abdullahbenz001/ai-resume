@@ -12,6 +12,6 @@ export default defineConfig({
   },
   datasource: {
     // Neon: DIRECT_URL = non-pooler (migrations). DATABASE_URL = pooled (app).
-    url: process.env.DIRECT_URL ?? process.env.DATABASE_URL,
+    url: process.env.DIRECT_URL || process.env.DATABASE_URL,
   },
 });

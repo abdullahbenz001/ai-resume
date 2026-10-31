@@ -1,0 +1,1 @@
+ALTER TABLE "resumes" ADD COLUMN "is_favorite" BOOLEAN NOT NULL DEFAULT false;

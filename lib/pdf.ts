@@ -9,10 +9,7 @@ import {
 } from "pdf-parse";
 
 export type PdfExtractionErrorCode =
-  | "empty"
-  | "corrupted"
-  | "password"
-  | "failed";
+  "empty" | "corrupted" | "password" | "failed";
 
 export class PdfExtractionError extends Error {
   readonly code: PdfExtractionErrorCode;
@@ -20,7 +17,7 @@ export class PdfExtractionError extends Error {
   constructor(
     message: string,
     code: PdfExtractionErrorCode,
-    options?: { cause?: unknown }
+    options?: { cause?: unknown },
   ) {
     super(message, options?.cause ? { cause: options.cause } : undefined);
     this.name = "PdfExtractionError";
@@ -45,16 +42,16 @@ function ensurePdfWorker(): void {
     } catch (pathError) {
       console.error(
         "[pdf] Failed to configure pdf-parse worker via getData():",
-        dataError
+        dataError,
       );
       console.error(
         "[pdf] Failed to configure pdf-parse worker via getPath():",
-        pathError
+        pathError,
       );
       throw new PdfExtractionError(
         "Failed to initialize PDF extractor.",
         "failed",
-        { cause: pathError }
+        { cause: pathError },
       );
     }
   }
@@ -84,18 +81,14 @@ function normalizeExtractedText(raw: string): string {
 }
 
 function isCorruptPdfError(error: unknown): boolean {
-  if (
-    error instanceof InvalidPDFException ||
-    error instanceof FormatError
-  ) {
+  if (error instanceof InvalidPDFException || error instanceof FormatError) {
     return true;
   }
 
   if (!error || typeof error !== "object") return false;
 
   const name = "name" in error ? String(error.name) : "";
-  const message =
-    "message" in error ? String(error.message).toLowerCase() : "";
+  const message = "message" in error ? String(error.message).toLowerCase() : "";
 
   return (
     name === "InvalidPDFException" ||
@@ -117,7 +110,7 @@ function isPasswordError(error: unknown): boolean {
  * Throws PdfExtractionError for empty, corrupted, or unreadable files.
  */
 export async function extractTextFromPdf(
-  data: Buffer | Uint8Array | ArrayBuffer
+  data: Buffer | Uint8Array | ArrayBuffer,
 ): Promise<string> {
   ensurePdfWorker();
 
@@ -131,7 +124,7 @@ export async function extractTextFromPdf(
     if (!text) {
       throw new PdfExtractionError(
         "This PDF appears to be empty or contains no extractable text.",
-        "empty"
+        "empty",
       );
     }
 
@@ -141,20 +134,15 @@ export async function extractTextFromPdf(
       throw error;
     }
 
-    console.error("[pdf] Extraction underlying error:", {
-      name: error instanceof Error ? error.name : typeof error,
-      message: error instanceof Error ? error.message : String(error),
-      cause:
-        error instanceof Error && error.cause
-          ? error.cause
-          : undefined,
+    console.error("[pdf] Extraction failed", {
+      type: error instanceof Error ? error.name : "unknown",
     });
 
     if (isCorruptPdfError(error)) {
       throw new PdfExtractionError(
         "This PDF is corrupted or unreadable.",
         "corrupted",
-        { cause: error }
+        { cause: error },
       );
     }
 
@@ -162,14 +150,14 @@ export async function extractTextFromPdf(
       throw new PdfExtractionError(
         "Password-protected PDFs are not supported.",
         "password",
-        { cause: error }
+        { cause: error },
       );
     }
 
     throw new PdfExtractionError(
       "Failed to extract text from this PDF.",
       "failed",
-      { cause: error }
+      { cause: error },
     );
   } finally {
     await parser.destroy();

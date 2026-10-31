@@ -1,32 +1,31 @@
+import { notFound } from "next/navigation";
+import { AnalyzeForm } from "@/components/analyze-form";
 import { PageHeader } from "@/components/app-shell/page-header";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-
-export default function AnalyzerPage() {
+import { getResume } from "@/features/resume/services/resume";
+export default async function AnalyzerPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ resumeId?: string }>;
+}) {
+  const { resumeId } = await searchParams;
+  const resume = resumeId ? await getResume(resumeId) : null;
+  if (resumeId && !resume) notFound();
   return (
     <div className="mx-auto w-full max-w-6xl">
       <PageHeader
         title="Resume Analyzer"
-        description="Compare a resume to a job description and get a match score."
+        description={
+          resume
+            ? `Compare “${resume.title || "Untitled resume"}” against a job description.`
+            : "Compare your experience with your next opportunity."
+        }
       />
-      <Card>
-        <CardHeader>
-          <CardTitle>Coming soon</CardTitle>
-          <CardDescription>
-            The analyzer workspace will live here in a later phase.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            For now, use the public landing page to run an analysis.
-          </p>
-        </CardContent>
-      </Card>
+      <AnalyzeForm
+        key={resume?.id || "new"}
+        savedResume={
+          resume ? { id: resume.id, content: resume.content } : undefined
+        }
+      />
     </div>
   );
 }
