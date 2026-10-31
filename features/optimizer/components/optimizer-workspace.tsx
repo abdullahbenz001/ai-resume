@@ -5,13 +5,16 @@ import { Loader2, Sparkles } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { createResumeAction } from "@/features/resume/actions/resume";
 import { createResumeSchema } from "@/features/resume/schemas/resume";
-import { optimizationSchema, optimizeInputSchema, type Optimization } from "../schemas/optimizer";
+import { optimizationSchema, optimizeInputSchema, optimizationModes, optimizationModeSchema, type OptimizationMode, type Optimization } from "../schemas/optimizer";
 
 const field = "w-full rounded-lg border border-input bg-background p-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 export function OptimizerWorkspace({ resume }: {
   resume: { id: string; title: string; content: string };
 }) {
   const [jobDescription, setJobDescription] = useState("");
+  const [mode, setMode] = useState<OptimizationMode>("full");
+  const [generatedMode, setGeneratedMode] = useState<OptimizationMode>("full");
+  const selectedMode = optimizationModes.find(option => option.value === mode)!;
   const [result, setResult] = useState<Optimization | null>(null);
   const [generatedFor, setGeneratedFor] = useState("");
   const [draft, setDraft] = useState("");
@@ -21,12 +24,12 @@ export function OptimizerWorkspace({ resume }: {
   const [pending, setPending] = useState<"generate" | "save" | null>(null);
   const [error, setError] = useState("");
   const busy = useRef(false);
-  const stale = result !== null && generatedFor !== jobDescription.trim();
+  const stale = result !== null && (generatedFor !== jobDescription.trim() || generatedMode !== mode);
 
   async function generate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy.current) return;
-    const input = optimizeInputSchema.safeParse({ resumeId: resume.id, jobDescription });
+    const input = optimizeInputSchema.safeParse({ resumeId: resume.id, jobDescription, mode });
     if (!input.success) { setError(input.error.issues[0].message); return; }
     busy.current = true;
     setPending("generate");
@@ -47,6 +50,7 @@ export function OptimizerWorkspace({ resume }: {
       setResult(parsed.data);
       setDraft(parsed.data.optimizedText);
       setGeneratedFor(input.data.jobDescription);
+      setGeneratedMode(input.data.mode);
       setReviewed(false);
       setSaved(false);
     } catch (cause) {
@@ -79,6 +83,16 @@ export function OptimizerWorkspace({ resume }: {
       <p className="mt-2 break-words text-muted-foreground">Tailor “{resume.title}” to your next role. Review and save the result as a separate resume.</p>
     </div>
     <form onSubmit={generate} className="space-y-3 rounded-2xl border bg-card p-5" aria-busy={pending === "generate"}>
+      <label htmlFor="optimizer-mode" className="block font-medium">Optimization focus</label>
+      <select id="optimizer-mode" value={mode} disabled={pending !== null}
+        aria-describedby="optimizer-mode-description" className={field}
+        onChange={e => {
+          const parsed = optimizationModeSchema.safeParse(e.target.value);
+          if (parsed.success) { setMode(parsed.data); setReviewed(false); }
+        }}>
+        {optimizationModes.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+      </select>
+      <p id="optimizer-mode-description" className="text-sm text-muted-foreground">{selectedMode.description}</p>
       <label htmlFor="optimizer-job" className="block font-medium">Target job description</label>
       <textarea id="optimizer-job" required minLength={50} maxLength={12000} rows={6}
         value={jobDescription} disabled={pending !== null}
@@ -96,8 +110,9 @@ export function OptimizerWorkspace({ resume }: {
     {result && <>
       <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:bg-amber-950 dark:text-amber-100">
         AI can introduce mistakes. Check every claim, date, skill and number before saving or applying.
-        {stale && <p className="mt-2 font-medium">The job description changed. Generate a new draft before saving.</p>}
+        {stale && <p className="mt-2 font-medium">The job description or optimization focus changed. Generate a new draft before saving.</p>}
       </div>
+      <p className="text-sm text-muted-foreground">Draft focus: {optimizationModes.find(option => option.value === generatedMode)?.label}. Compare the complete draft with your original before saving.</p>
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="min-w-0 rounded-xl border bg-card p-5">
           <h2 className="mb-3 font-semibold">Original resume</h2>

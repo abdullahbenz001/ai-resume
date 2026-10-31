@@ -8,7 +8,7 @@ A Next.js SaaS workspace for saving resumes and comparing them with job descript
 - Resume workspace: create from PDF or text, rename, delete (including related analyses), empty/loading/error states.
 - Analysis of saved resumes, transactional persistence, analysis history and live dashboard statistics.
 - Server-side ownership checks, Zod validation, bounded request bodies and PostgreSQL-backed request budgets.
-- Resume optimizer: job-targeted draft, editable comparison, review notes and explicit save as a separate resume. Drafts are temporary until saved.
+- Resume optimizer: full-resume, professional-summary and experience/STAR focus modes, job-targeted draft, editable comparison, review notes and explicit save as a separate resume. Drafts are temporary until saved.
 - Explicit AI failures: no fabricated scores or silently substituted results.
 
 ATS scoring, job tracking, embeddings and billing are **not implemented** in this delivery. This is not yet a production release.
@@ -57,7 +57,7 @@ Vitest covers authorization boundaries, schemas, HTTP status handling, failed mo
 
 Sprint 5.3 now includes client-side search across title/file/preview, all/favorites filtering, updated/name sorting and a persistent favorite flag. List reads remain capped at 100 until pagination is added.
 
-Optimizer uses the existing Gemini configuration and Resume table. It adds no migration. Prompts request factual preservation, but model output is not a factual guarantee: users must review every claim. Version lineage, optimization history, dedicated STAR/summary modes and comparison scoring remain future work.
+Optimizer uses the existing Gemini configuration and Resume table. It adds no migration. Prompts request factual preservation, but model output is not a factual guarantee: users must review every claim. Version lineage, optimization history, comparison scoring remain future work.
 
 ## Operational limits
 
@@ -81,3 +81,9 @@ npm run dev
 ```
 
 If generation itself fails, fix that first using its error message. Do not change the Prisma import path or commit generated node_modules files. Use Node 22.12+ and `npm ci` for the versions in the lockfile. Check `git status --short --branch` and `git log -1 --oneline` if stack traces reference files different from the current repository; preserve local changes when updating.
+
+## Optimizer focus modes
+
+Choose **Full resume**, **Professional summary**, or **Experience · STAR** before generating. All modes return a complete editable resume and use the same 10/hour optimizer budget. Requests without a mode default to full-resume optimization.
+
+Summary mode asks for a short evidence-based summary; experience mode asks for concise STAR-oriented bullets only where the original supplies supporting facts. Focused modes ask the model to preserve other sections, but this is a prompt constraint, not a deterministic guarantee. Review the whole draft and confirm every claim before saving. Changing focus or the job description requires a new generation; a failed request preserves the previous draft.

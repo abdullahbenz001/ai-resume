@@ -47,3 +47,22 @@ it("retains the draft after failure and requires regeneration for a changed job"
   expect((screen.getByRole("checkbox") as HTMLInputElement).disabled).toBe(true);
   expect(mock.save).not.toHaveBeenCalled();
 });
+
+it("requires a fresh reviewed draft after changing focus and sends the selected mode", async () => {
+  const user = userEvent.setup();
+  render(<OptimizerWorkspace resume={resume} />);
+  await user.type(screen.getByLabelText("Target job description"), "Frontend developer building React applications and reliable TypeScript interfaces.");
+  await user.click(screen.getByRole("button", { name: "Optimize resume" }));
+  await screen.findByLabelText("Suggested resume — editable");
+  await user.click(screen.getByRole("checkbox"));
+  await user.selectOptions(screen.getByLabelText("Optimization focus"), "summary");
+  expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(false);
+  expect((screen.getByRole("button", { name: "Save as new resume" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getByText(/Draft focus: Full resume/)).toBeTruthy();
+  await user.click(screen.getByRole("button", { name: "Generate a new draft" }));
+  await screen.findByText(/Draft focus: Professional summary/);
+  const request = mock.fetch.mock.calls.at(-1)![1];
+  expect(JSON.parse(request.body)).toMatchObject({ resumeId: resume.id, mode: "summary" });
+  expect((screen.getByRole("button", { name: "Save as new resume" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(mock.save).not.toHaveBeenCalled();
+});

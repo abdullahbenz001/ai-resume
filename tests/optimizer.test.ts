@@ -20,7 +20,7 @@ it("uses the authenticated owner and stored content, ignoring forged text and us
   await optimizeResume({ ...input, resumeText: "Forged experience", userId: "victim" });
   expect(mock.find).toHaveBeenCalledWith("owner-a", id);
   expect(mock.quota).toHaveBeenCalledWith("owner-a", "optimizer");
-  expect(mock.generate).toHaveBeenCalledWith(source, input.jobDescription);
+  expect(mock.generate).toHaveBeenCalledWith(source, input.jobDescription, "full");
 });
 it("rejects another user's or deleted resume before quota and provider access", async () => {
   mock.find.mockResolvedValue(null);
@@ -41,4 +41,15 @@ it("blocks access when authentication fails", async () => {
   mock.user.mockRejectedValue(new AppError("Sign in", 401));
   await expect(optimizeResume(input)).rejects.toMatchObject({ status: 401 });
   expect(mock.find).not.toHaveBeenCalled();
+});
+
+it.each(["summary", "experience"])("passes the validated %s focus with owned source content", async mode => {
+  await optimizeResume({ ...input, mode });
+  expect(mock.generate).toHaveBeenCalledWith(source, input.jobDescription, mode);
+});
+it("rejects unknown focus values before repository, quota or provider access", async () => {
+  await expect(optimizeResume({ ...input, mode: "invent-experience" })).rejects.toThrow();
+  expect(mock.find).not.toHaveBeenCalled();
+  expect(mock.quota).not.toHaveBeenCalled();
+  expect(mock.generate).not.toHaveBeenCalled();
 });
