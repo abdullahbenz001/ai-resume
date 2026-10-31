@@ -18,6 +18,14 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+      - name: Verify dev regenerates a missing Prisma Client
+        run: |
+          node -e "require('node:fs').rmSync('node_modules/.prisma/client', { recursive: true, force: true })"
+          npm run dev -- --help
+          node -e "require('@prisma/client')"
+      - name: Remove generated client before build
+        run: |
+          node -e "require('node:fs').rmSync('node_modules/.prisma/client', { recursive: true, force: true })"
       - run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: "1"
