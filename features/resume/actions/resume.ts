@@ -2,7 +2,12 @@
 import { revalidatePath } from "next/cache";
 import { ZodError } from "zod";
 import { AppError } from "@/lib/app-error";
-import { createResume, renameResume, deleteResume } from "../services/resume";
+import {
+  createResume,
+  renameResume,
+  deleteResume,
+  toggleResumeFavorite,
+} from "../services/resume";
 import type { ActionResult } from "../types";
 async function mutate(work: () => Promise<unknown>): Promise<ActionResult> {
   try {
@@ -34,4 +39,7 @@ export async function renameResumeAction(input: unknown) {
 }
 export async function deleteResumeAction(id: unknown) {
   return mutate(() => deleteResume(id));
+}
+export async function toggleResumeFavoriteAction(id: unknown) {
+  return mutate(() => toggleResumeFavorite(id));
 }

@@ -18,6 +18,12 @@ beforeAll(async () => {
       "utf8",
     ),
   );
+  await pg.exec(
+    await readFile(
+      "prisma/migrations/202610310003_resume_favorites/migration.sql",
+      "utf8",
+    ),
+  );
   mock.query.mockImplementation(
     async (strings: TemplateStringsArray, ...values: unknown[]) => {
       const sql = strings.reduce(

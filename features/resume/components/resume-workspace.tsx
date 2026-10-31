@@ -6,6 +6,8 @@ import { Menu } from "@base-ui/react/menu";
 import {
   FileText,
   MoreHorizontal,
+  Search,
+  Star,
   Plus,
   Pencil,
   Trash2,
@@ -19,6 +21,7 @@ import {
   createResumeAction,
   renameResumeAction,
   deleteResumeAction,
+  toggleResumeFavoriteAction,
 } from "../actions/resume";
 import type { ResumeSummary } from "../types";
 type Editor =
@@ -28,6 +31,34 @@ const fieldClass =
 export function ResumeWorkspace({ resumes }: { resumes: ResumeSummary[] }) {
   const [editor, setEditor] = useState<Editor | null>(null);
   const [notice, setNotice] = useState("");
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<"all" | "favorites">("all");
+  const [sort, setSort] = useState<"updated" | "name" | "oldest">("updated");
+  const [pendingFavorite, setPendingFavorite] = useState<string | null>(null);
+  const [favoriteOverrides, setFavoriteOverrides] = useState<
+    Record<string, boolean>
+  >({});
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const visibleResumes = resumes.map((resume) => ({
+    ...resume,
+    isFavorite: favoriteOverrides[resume.id] ?? resume.isFavorite,
+  }));
+  const sortedResumes = visibleResumes
+    .filter((resume) => filter === "all" || resume.isFavorite)
+    .filter(
+      (resume) =>
+        !normalizedQuery ||
+        `${resume.title} ${resume.fileName ?? ""} ${resume.preview}`
+          .toLocaleLowerCase()
+          .includes(normalizedQuery),
+    )
+    .sort((a, b) =>
+      sort === "name"
+        ? a.title.localeCompare(b.title)
+        : sort === "oldest"
+          ? a.updatedAt.localeCompare(b.updatedAt)
+          : b.updatedAt.localeCompare(a.updatedAt),
+    );
   return (
     <>
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
@@ -71,88 +102,195 @@ export function ResumeWorkspace({ resumes }: { resumes: ResumeSummary[] }) {
         </div>
       ) : (
         <>
+          <div className="mb-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+            <label className="relative block">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden
+              />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search resumes…"
+                aria-label="Search resumes"
+                className="h-10 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </label>
+            <select
+              aria-label="Filter resumes"
+              value={filter}
+              onChange={(event) =>
+                setFilter(event.target.value as "all" | "favorites")
+              }
+              className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+            >
+              <option value="all">All resumes</option>
+              <option value="favorites">Favorites</option>
+            </select>
+            <select
+              aria-label="Sort resumes"
+              value={sort}
+              onChange={(event) =>
+                setSort(event.target.value as "updated" | "name" | "oldest")
+              }
+              className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+            >
+              <option value="updated">Recently updated</option>
+              <option value="oldest">Oldest updated</option>
+              <option value="name">Name A–Z</option>
+            </select>
+          </div>
           <p className="mb-4 text-sm text-muted-foreground">
-            {resumes.length} resumes · Most recently updated first
+            {sortedResumes.length} of {resumes.length} resumes ·{" "}
+            {sort === "name"
+              ? "Name A–Z"
+              : sort === "oldest"
+                ? "Oldest updated first"
+                : "Most recently updated first"}
             {resumes.length === 100 ? " · Showing latest 100" : ""}
           </p>
-          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-            {resumes.map((resume) => (
-              <article
-                key={resume.id}
-                className="flex flex-col rounded-2xl border bg-card p-5 shadow-sm"
+          {sortedResumes.length === 0 ? (
+            <div className="rounded-2xl border border-dashed p-10 text-center">
+              <h2 className="text-lg font-semibold">No matching resumes</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Try a different search or filter.
+              </p>
+              <Button
+                variant="outline"
+                className="mt-4"
+                onClick={() => {
+                  setQuery("");
+                  setFilter("all");
+                }}
               >
-                <div className="mb-5 flex items-center justify-between">
-                  <span className="rounded-xl bg-teal-50 p-3 text-teal-800 dark:bg-teal-950 dark:text-teal-300">
-                    <FileText aria-hidden className="size-5" />
-                  </span>
-                  <Menu.Root>
-                    <Menu.Trigger
-                      render={
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          id={`resume-actions-${resume.id}`}
-                          aria-label={`Actions for ${resume.title}`}
-                        />
+                Clear search and filter
+              </Button>
+            </div>
+          ) : (
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              {sortedResumes.map((resume) => (
+                <article
+                  key={resume.id}
+                  className="flex flex-col rounded-2xl border bg-card p-5 shadow-sm"
+                >
+                  <div className="mb-5 flex items-center justify-between">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      disabled={pendingFavorite === resume.id}
+                      aria-label={
+                        resume.isFavorite
+                          ? `Remove ${resume.title} from favorites`
+                          : `Add ${resume.title} to favorites`
                       }
+                      aria-pressed={resume.isFavorite}
+                      onClick={async () => {
+                        setPendingFavorite(resume.id);
+                        try {
+                          const result = await toggleResumeFavoriteAction(
+                            resume.id,
+                          );
+                          if (!result.ok) setNotice(result.error);
+                          else {
+                            setFavoriteOverrides((current) => ({
+                              ...current,
+                              [resume.id]: !resume.isFavorite,
+                            }));
+                            setNotice(
+                              resume.isFavorite
+                                ? "Removed from favorites."
+                                : "Added to favorites.",
+                            );
+                          }
+                        } catch {
+                          setNotice(
+                            "Could not update favorite. Please try again.",
+                          );
+                        } finally {
+                          setPendingFavorite(null);
+                        }
+                      }}
                     >
-                      <MoreHorizontal />
-                    </Menu.Trigger>
-                    <Menu.Portal>
-                      <Menu.Positioner
-                        sideOffset={6}
-                        align="end"
-                        className="z-40"
+                      <Star
+                        className={
+                          resume.isFavorite
+                            ? "fill-amber-400 text-amber-500"
+                            : ""
+                        }
+                      />
+                    </Button>
+                    <span className="rounded-xl bg-teal-50 p-3 text-teal-800 dark:bg-teal-950 dark:text-teal-300">
+                      <FileText aria-hidden className="size-5" />
+                    </span>
+                    <Menu.Root>
+                      <Menu.Trigger
+                        render={
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            id={`resume-actions-${resume.id}`}
+                            aria-label={`Actions for ${resume.title}`}
+                          />
+                        }
                       >
-                        <Menu.Popup className="min-w-40 rounded-xl border bg-popover p-1 shadow-lg">
-                          <Menu.Item
-                            className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm outline-none data-highlighted:bg-muted"
-                            onClick={() =>
-                              setEditor({ kind: "rename", resume })
-                            }
-                          >
-                            <Pencil className="size-4" /> Rename
-                          </Menu.Item>
-                          <Menu.Item
-                            className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-destructive outline-none data-highlighted:bg-muted"
-                            onClick={() =>
-                              setEditor({ kind: "delete", resume })
-                            }
-                          >
-                            <Trash2 className="size-4" /> Delete
-                          </Menu.Item>
-                        </Menu.Popup>
-                      </Menu.Positioner>
-                    </Menu.Portal>
-                  </Menu.Root>
-                </div>
-                <h2
-                  className="truncate text-lg font-semibold"
-                  title={resume.title}
-                >
-                  {resume.title}
-                </h2>
-                <p className="mt-2 line-clamp-3 min-h-16 text-sm leading-relaxed text-muted-foreground">
-                  {resume.preview}
-                </p>
-                <div className="mt-5 flex flex-wrap justify-between gap-2 border-t pt-4 text-xs text-muted-foreground">
-                  <span>{resume.analysisCount} analyses</span>
-                  <time dateTime={resume.updatedAt}>
-                    Updated {resume.updatedAt.slice(0, 10)}
-                  </time>
-                </div>
-                <Link
-                  className={buttonVariants({
-                    variant: "outline",
-                    className: "mt-4 w-full",
-                  })}
-                  href={`/analyzer?resumeId=${encodeURIComponent(resume.id)}`}
-                >
-                  Analyze resume <ArrowUpRight className="size-4" />
-                </Link>
-              </article>
-            ))}
-          </div>
+                        <MoreHorizontal />
+                      </Menu.Trigger>
+                      <Menu.Portal>
+                        <Menu.Positioner
+                          sideOffset={6}
+                          align="end"
+                          className="z-40"
+                        >
+                          <Menu.Popup className="min-w-40 rounded-xl border bg-popover p-1 shadow-lg">
+                            <Menu.Item
+                              className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm outline-none data-highlighted:bg-muted"
+                              onClick={() =>
+                                setEditor({ kind: "rename", resume })
+                              }
+                            >
+                              <Pencil className="size-4" /> Rename
+                            </Menu.Item>
+                            <Menu.Item
+                              className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-destructive outline-none data-highlighted:bg-muted"
+                              onClick={() =>
+                                setEditor({ kind: "delete", resume })
+                              }
+                            >
+                              <Trash2 className="size-4" /> Delete
+                            </Menu.Item>
+                          </Menu.Popup>
+                        </Menu.Positioner>
+                      </Menu.Portal>
+                    </Menu.Root>
+                  </div>
+                  <h2
+                    className="truncate text-lg font-semibold"
+                    title={resume.title}
+                  >
+                    {resume.title}
+                  </h2>
+                  <p className="mt-2 line-clamp-3 min-h-16 text-sm leading-relaxed text-muted-foreground">
+                    {resume.preview}
+                  </p>
+                  <div className="mt-5 flex flex-wrap justify-between gap-2 border-t pt-4 text-xs text-muted-foreground">
+                    <span>{resume.analysisCount} analyses</span>
+                    <time dateTime={resume.updatedAt}>
+                      Updated {resume.updatedAt.slice(0, 10)}
+                    </time>
+                  </div>
+                  <Link
+                    className={buttonVariants({
+                      variant: "outline",
+                      className: "mt-4 w-full",
+                    })}
+                    href={`/analyzer?resumeId=${encodeURIComponent(resume.id)}`}
+                  >
+                    Analyze resume <ArrowUpRight className="size-4" />
+                  </Link>
+                </article>
+              ))}
+            </div>
+          )}
         </>
       )}
       {editor && (

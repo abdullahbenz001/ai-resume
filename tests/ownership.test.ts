@@ -6,6 +6,7 @@ const mock = vi.hoisted(() => ({
   create: vi.fn(),
   rename: vi.fn(),
   delete: vi.fn(),
+  toggleFavorite: vi.fn(),
 }));
 vi.mock("@/features/auth/services/user", () => ({ requireAppUser: mock.user }));
 vi.mock("@/features/resume/repositories/resume", () => ({
@@ -15,6 +16,7 @@ import {
   createResume,
   deleteResume,
   renameResume,
+  toggleResumeFavorite,
   getResume,
 } from "@/features/resume/services/resume";
 const id = "clxxxxxxxxxxxxxxxxxxxxxxx";
@@ -22,6 +24,8 @@ beforeEach(() => {
   mock.user.mockResolvedValue({ id: "owner-a" });
   mock.rename.mockResolvedValue({ count: 0 });
   mock.delete.mockResolvedValue({ count: 0 });
+  mock.find.mockResolvedValue({ id, isFavorite: false });
+  mock.toggleFavorite.mockResolvedValue({ count: 1 });
 });
 describe("resume ownership", () => {
   it("derives ownership from authentication on create", async () => {
@@ -44,6 +48,11 @@ describe("resume ownership", () => {
   it("cannot delete a resume outside the current user", async () => {
     await expect(deleteResume(id)).rejects.toMatchObject({ status: 404 });
     expect(mock.delete).toHaveBeenCalledWith("owner-a", id);
+  });
+  it("toggles favorites only after an ownership-scoped lookup", async () => {
+    await toggleResumeFavorite(id);
+    expect(mock.find).toHaveBeenCalledWith("owner-a", id);
+    expect(mock.toggleFavorite).toHaveBeenCalledWith("owner-a", id, true);
   });
   it("scopes lookup and rejects invalid IDs without querying", async () => {
     await getResume(id);

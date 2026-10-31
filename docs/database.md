@@ -1,9 +1,10 @@
 # Database setup and migration safety
 
-Two migrations are included:
+The following migrations are included:
 
 1. `202610310001_initial`: existing User/Resume/Analysis schema.
 2. `202610310002_request_limits`: additive request-budget table.
+3. `202610310003_resume_favorites`: adds the persistent resume favorite flag.
 
 ## Empty database
 

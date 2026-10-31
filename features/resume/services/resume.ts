@@ -42,3 +42,10 @@ export async function deleteResume(input: unknown) {
   if (!(await resumeRepository.delete(user.id, id)).count)
     throw new AppError("Resume not found.", 404);
 }
+export async function toggleResumeFavorite(input: unknown) {
+  const user = await requireAppUser();
+  const { id } = renameResumeSchema.pick({ id: true }).parse({ id: input });
+  const current = await resumeRepository.find(user.id, id);
+  if (!current) throw new AppError("Resume not found.", 404);
+  await resumeRepository.toggleFavorite(user.id, id, !current.isFavorite);
+}

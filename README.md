@@ -53,6 +53,8 @@ npm run build
 
 Vitest covers authorization boundaries, schemas, HTTP status handling, failed model responses, UI interactions and repository filters. PGlite runs the actual SQL migrations and concurrent request-limit queries against a local PostgreSQL engine. These tests do not replace live Clerk, Neon and Gemini acceptance testing.
 
+Sprint 5.3 now includes client-side search across title/file/preview, all/favorites filtering, updated/name sorting and a persistent favorite flag. List reads remain capped at 100 until pagination is added.
+
 ## Operational limits
 
 - PDF: 5 MiB; resumes and job descriptions: 12,000 characters each.

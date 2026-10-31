@@ -12,6 +12,7 @@ export const resumeRepository = {
         title: true,
         content: true,
         fileName: true,
+        isFavorite: true,
         updatedAt: true,
         _count: { select: { analyses: true } },
       },
@@ -25,4 +26,6 @@ export const resumeRepository = {
     getDb().resume.updateMany({ where: { id, userId }, data: { title } }),
   delete: (userId: string, id: string) =>
     getDb().resume.deleteMany({ where: { id, userId } }),
+  toggleFavorite: (userId: string, id: string, isFavorite: boolean) =>
+    getDb().resume.updateMany({ where: { id, userId }, data: { isFavorite } }),
 };

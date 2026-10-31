@@ -3,6 +3,7 @@ export type ResumeSummary = {
   title: string;
   preview: string;
   fileName: string | null;
+  isFavorite: boolean;
   updatedAt: string;
   analysisCount: number;
 };

@@ -36,6 +36,7 @@ model Resume {
   content   String   @db.Text
   fileName  String?  @map("file_name")
   mimeType  String?  @map("mime_type")
+  isFavorite Boolean  @default(false) @map("is_favorite")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

@@ -7,11 +7,13 @@ const actions = vi.hoisted(() => ({
   create: vi.fn(),
   rename: vi.fn(),
   delete: vi.fn(),
+  favorite: vi.fn(),
 }));
 vi.mock("@/features/resume/actions/resume", () => ({
   createResumeAction: actions.create,
   renameResumeAction: actions.rename,
   deleteResumeAction: actions.delete,
+  toggleResumeFavoriteAction: actions.favorite,
 }));
 vi.mock("next/link", () => ({
   default: (props: AnchorHTMLAttributes<HTMLAnchorElement>) => <a {...props} />,
@@ -25,23 +27,20 @@ const resume = {
   fileName: null,
   updatedAt: "2026-10-31T12:00:00.000Z",
   analysisCount: 3,
+  isFavorite: false,
 };
 it("shows an empty state and submits valid resume data", async () => {
   actions.create.mockResolvedValue({ ok: true });
   const user = userEvent.setup();
   render(<ResumeWorkspace resumes={[]} />);
   expect(screen.getByText("Your next opportunity starts here")).toBeTruthy();
-  await user.click(
-    screen.getByRole("button", { name: "Create resume", exact: true }),
-  );
+  await user.click(screen.getByRole("button", { name: "Create resume" }));
   await user.type(screen.getByLabelText("Resume title"), "Frontend CV");
   await user.type(
     screen.getByLabelText("Resume text"),
     "Experienced TypeScript developer creating reliable interfaces and web applications.",
   );
-  await user.click(
-    screen.getByRole("button", { name: "Save resume", exact: true }),
-  );
+  await user.click(screen.getByRole("button", { name: "Save resume" }));
   await waitFor(() =>
     expect(actions.create).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Frontend CV" }),
@@ -60,15 +59,11 @@ it("retains input and shows a server failure without closing", async () => {
   await user.click(
     screen.getByRole("button", { name: "Actions for Frontend Developer" }),
   );
-  await user.click(
-    await screen.findByRole("menuitem", { name: "Rename", exact: true }),
-  );
+  await user.click(await screen.findByRole("menuitem", { name: "Rename" }));
   const input = screen.getByLabelText("Resume title");
   await user.clear(input);
   await user.type(input, "New name");
-  await user.click(
-    screen.getByRole("button", { name: "Save resume", exact: true }),
-  );
+  await user.click(screen.getByRole("button", { name: "Save resume" }));
   expect(await screen.findByRole("alert")).toBeTruthy();
   expect((input as HTMLInputElement).value).toBe("New name");
   expect(screen.getByRole("dialog")).toBeTruthy();
@@ -79,12 +74,10 @@ it("requires explicit delete confirmation and allows cancellation", async () => 
   await user.click(
     screen.getByRole("button", { name: "Actions for Frontend Developer" }),
   );
-  await user.click(
-    await screen.findByRole("menuitem", { name: "Delete", exact: true }),
-  );
+  await user.click(await screen.findByRole("menuitem", { name: "Delete" }));
   expect(screen.getByText(/and its 3 saved analyses/)).toBeTruthy();
   expect(actions.delete).not.toHaveBeenCalled();
-  await user.click(screen.getByRole("button", { name: "Cancel", exact: true }));
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(actions.delete).not.toHaveBeenCalled();
 });
@@ -97,17 +90,13 @@ it("blocks repeat submissions while a mutation is pending", async () => {
   );
   const user = userEvent.setup();
   render(<ResumeWorkspace resumes={[]} />);
-  await user.click(
-    screen.getByRole("button", { name: "Create resume", exact: true }),
-  );
+  await user.click(screen.getByRole("button", { name: "Create resume" }));
   await user.type(screen.getByLabelText("Resume title"), "CV");
   await user.type(
     screen.getByLabelText("Resume text"),
     "Experienced developer building dependable TypeScript web applications for teams.",
   );
-  await user.click(
-    screen.getByRole("button", { name: "Save resume", exact: true }),
-  );
+  await user.click(screen.getByRole("button", { name: "Save resume" }));
   await waitFor(() =>
     expect(
       (screen.getByRole("button", { name: "Saving…" }) as HTMLButtonElement)
@@ -118,4 +107,44 @@ it("blocks repeat submissions while a mutation is pending", async () => {
   expect(actions.create).toHaveBeenCalledTimes(1);
   finish({ ok: true });
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+});
+
+it("searches, sorts and filters favorites", async () => {
+  actions.favorite.mockResolvedValue({ ok: true });
+  const user = userEvent.setup();
+  render(
+    <ResumeWorkspace
+      resumes={[
+        resume,
+        {
+          ...resume,
+          id: "clyyyyyyyyyyyyyyyyyyyyyyy",
+          title: "Backend Engineer",
+          preview: "PostgreSQL developer",
+        },
+      ]}
+    />,
+  );
+  await user.type(
+    screen.getByRole("textbox", { name: "Search resumes" }),
+    "PostgreSQL",
+  );
+  expect(screen.getByText("Backend Engineer")).toBeTruthy();
+  expect(screen.queryByText("Frontend Developer")).toBeNull();
+  await user.clear(screen.getByRole("textbox", { name: "Search resumes" }));
+  await user.selectOptions(
+    screen.getByRole("combobox", { name: "Sort resumes" }),
+    "name",
+  );
+  expect(screen.getByText("2 of 2 resumes · Name A–Z")).toBeTruthy();
+  await user.click(
+    screen.getByRole("button", { name: "Add Frontend Developer to favorites" }),
+  );
+  await waitFor(() => expect(actions.favorite).toHaveBeenCalledWith(resume.id));
+  await user.selectOptions(
+    screen.getByRole("combobox", { name: "Filter resumes" }),
+    "favorites",
+  );
+  expect(screen.getByText("Frontend Developer")).toBeTruthy();
+  expect(screen.queryByText("Backend Engineer")).toBeNull();
 });
